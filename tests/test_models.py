@@ -711,6 +711,27 @@ class TestSES:
 
 
 class TestSeasonalES:
+    @pytest.mark.parametrize(
+        "model",
+        [
+            SeasonalExponentialSmoothing(season_length=12, alpha=0.3),
+            SeasonalExponentialSmoothingOptimized(season_length=12),
+        ],
+    )
+    def test_series_shorter_than_season(self, model):
+        y = ap[:6]
+        fcst = model.forecast(y=y, h=2, fitted=True)
+        np.testing.assert_array_equal(fcst["mean"], np.full(2, np.nan))
+        np.testing.assert_array_equal(fcst["fitted"], np.full(6, np.nan))
+        fcst = model.forecast(y=y, h=12, level=[80])
+        np.testing.assert_array_equal(fcst["lo-80"], np.full(12, np.nan))
+
+        model.fit(y)
+        np.testing.assert_array_equal(model.predict(h=2)["mean"], np.full(2, np.nan))
+        np.testing.assert_array_equal(
+            model.predict_in_sample()["fitted"], np.full(6, np.nan)
+        )
+
     def test_seasonal_es(self):
         seas_es = SeasonalExponentialSmoothing(season_length=12, alpha=1.0)
         assert_class(seas_es, x=ap, h=12)
